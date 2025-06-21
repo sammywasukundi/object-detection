@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
 
 void main() {
   runApp(MyHomePage());
@@ -23,12 +26,40 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     imagePicker = ImagePicker();
-    final options = ObjectDetectorOptions(
-      mode: DetectionMode.single,
+    // final options = ObjectDetectorOptions(
+    //   mode: DetectionMode.single,
+    //   classifyObjects: true,
+    //   multipleObjects: true,
+    // );
+    // objectDetector = ObjectDetector(options: options);
+    loadModel();
+  }
+
+  loadModel() async {
+    final modelPath = await getModelPath('assets/ml/fruits_tm.tflite');
+    final options = LocalObjectDetectorOptions(
+      mode: DetectionMode.stream,
+      modelPath: modelPath,
       classifyObjects: true,
       multipleObjects: true,
     );
     objectDetector = ObjectDetector(options: options);
+  }
+
+  Future<String> getModelPath(String asset) async {
+    final path = '${(await getApplicationSupportDirectory()).path}/$asset';
+    await Directory(dirname(path)).create(recursive: true);
+    final file = File(path);
+    if (!await file.exists()) {
+      final byteData = await rootBundle.load(asset);
+      await file.writeAsBytes(
+        byteData.buffer.asUint8List(
+          byteData.offsetInBytes,
+          byteData.lengthInBytes,
+        ),
+      );
+    }
+    return file.path;
   }
 
   @override
